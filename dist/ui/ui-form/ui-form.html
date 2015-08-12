@@ -1,0 +1,408 @@
+<script>
+    Elliptical(function () {
+        $.component('ui-form', {
+            options:{
+                proxyUpgrade:true,
+                validationService:'Validation',
+                notifyService:'Notify',
+                locationService:'Location',
+                submitEvent: 'OnDocumentSubmit',
+                requestEvent:'OnDocumentRequest',
+                resetEvent:'OnFormReset',
+                overrideNotify:false,
+                locationRoute:false,
+                captureSubmit:false,
+                processingMessage: 'Processing...',
+                successMessage:'The Form has been successfully submitted',
+                failureMessage:'Error submitting form',
+                validationError:'Form Validation Error',
+                redirectUrl:null
+            },
+
+            _initComponent: function () {
+                this._initForm();
+            },
+
+            _initForm:function(){
+                this._setFormName();
+                this._setFormElement();
+                this.__setFormScope();
+                this._setMethod();
+                this._setService();
+                this._setValidationService();
+                this._setNotificationService();
+                this._setLocationService();
+                this._setSubmissionType();
+                this._setFormEvents();
+            },
+
+
+            _events: function () {
+                this._event($(document),this.options.resetEvent,this._onFormReset.bind(this));
+            },
+
+            _setFormEvents:function(){
+                var captureSubmit=this._data.get('captureSubmit');
+                if(captureSubmit){
+                    this._listenerForInternalCapture();
+                }else{
+                    this._listenerForDelegateCapture();
+                }
+            },
+
+            _setFormName:function(){
+                var form=this.element.find('form');
+                var name=this.element.attr('md-name');
+                if(name && name !==undefined){
+                    this._data.set('name',name);
+                    form.attr('name',name);
+                }else{
+                    name=form.attr('name');
+                }
+                this._data.set('name',name);
+            },
+
+            _setFormElement: function () {
+                var form = this.element.find('form');
+                this._data.set('form',form);
+            },
+
+            __setFormScope:function(){
+                var scopeProp = this.options.scope;
+                var cxt=this.options.context;
+                if(!cxt){
+                    cxt=$$.elliptical.context || {};
+                }
+                if (scopeProp && typeof scopeProp !== 'undefined' && !this.__isEmptyObject(cxt)) {
+                    var formContext=this.__cloneObject(cxt[scopeProp]);
+                    this.$scope = formContext;
+                    //if (this.$scope._message === undefined) {
+                        //this.$scope._message = {};
+                    //}
+                }
+
+            },
+
+            _setMethod: function () {
+                var form = this.element.find('form');
+                var method=(form.attr('method'));
+                method=(method && method !==undefined) ? method : 'post';
+                this._data.set('method',method);
+            },
+
+            _setService:function(){
+                var service=this.service();
+                this._data.set('service',service);
+            },
+
+            _setValidationService:function(){
+                var validationServiceName=this.options.validationService;
+                var service=this.service(validationServiceName);
+                this._data.set('validationService',service);
+            },
+
+            _setNotificationService:function(){
+                var notifyServiceName=this.options.notifyService;
+                var service=this.service(notifyServiceName);
+                this._data.set('notifyService',service);
+            },
+
+            _setLocationService:function(){
+                var locationServiceName=this.options.locationService;
+                var service=this.service(locationServiceName);
+                this._data.set('Location',service);
+            },
+
+            /**
+             * default: internal submit capture==false, submit to action==false
+             * attribute overrides:
+             * if form[action] defined --> data.captureSubmit=true
+             * ui-form[action-submit="true"] --> data.actionSubmit=true
+             * if ui-form[service] undefined && data.captureAction --> data.actionSubmit=true
+             * if data.actionSubmit && ui-form[location-route] undefined, --> ui-form will natively XMLHttpRequest to form[action] by form[method]
+             * if data.actionSubmit && ui-form[location-route], --> ui-form will route the request via the Location service
+             *
+             * @private
+             */
+            _setSubmissionType:function(){
+                var form = this.element.find('form');
+                var captureSubmit=false;
+                var actionSubmit=false;
+                var action=(form.attr('action'));
+                var service=this._data.get('service');
+                var isService=this.__isService(service);
+
+                if(action && action !==undefined){
+                    captureSubmit=true;
+                }
+
+                if(this.options.actionSubmit){
+                    actionSubmit=true;
+                }else{
+                    if(!isService && captureSubmit){
+                        actionSubmit=true;
+                    }
+                }
+                if(!isService && !actionSubmit){
+                    throw 'Error: UI-FORM requires either an injected service or a set action attribute';
+                }
+
+                this._data.set('actionSubmit',actionSubmit);
+                this._data.set('action',action);
+                this._data.set('captureSubmit',captureSubmit);
+            },
+
+            _getNotifyService: function(){
+                if(this.options.overrideNotify){
+                    return null;
+                }
+                var service=this._data.get('notifyService');
+                return (this.__isService(service)) ? service : null;
+            },
+
+            _getFormDataObject:function(data){
+                var formData = new FormData();
+                for(var key in data){
+                    if(data.hasOwnProperty(key)){
+                        formData.append(key,data[key]);
+                    }
+                }
+                return formData;
+            },
+
+            _tryValidate:function(event,data){
+                var validation=this._data.get('validationService');
+                if(this.__isService(validation)){
+                    this._validate(validation,data);
+                }else{
+                    this._trySubmit(data);
+                }
+            },
+
+            _validate:function(validation,data){
+                var name=this._data.get('name');
+                var self=this;
+                validation.post(data.body,name,function(err,result){
+                    data.body=result;
+                    self._onValidate(err,data);
+                });
+            },
+
+            _trySubmit:function(data){
+                var actionSubmit=this._data.get('actionSubmit');
+                if(actionSubmit){
+                    this._submitAction(data);
+                }else{
+                    this._submitToService(data);
+                }
+            },
+
+            _submitToService:function(data){
+                var service=this._data.get('service');
+                var method=this._data.get('method');
+                service[method](data.body,this._onSubmit.bind(this));
+            },
+
+            _submitAction:function(data){
+                if(this.options.locationRoute){
+                    $(window).trigger(this.options.requestEvent,data);
+                }else{
+                    this._nativeXHRSubmit(data);
+                }
+            },
+
+            _onValidate:function(err,data){
+                var message;
+                if(!err){
+                    message=this.options.processingMessage;
+                    this._sendNotification(message);
+                    this._trySubmit(data);
+                }else{
+                    message=this.options.validationError;
+                    this._sendNotification(message);
+                    data=this._mergeFormData(data);
+                    this._renderMergedData(data);
+                }
+            },
+
+            _onSubmit:function(err,data){
+                if(!this.options.overrideNotify){
+                    var message=(err) ? this.options.failureMessage : this.options.successMessage;
+                    this._sendNotification(message);
+                }
+
+                (err) ? this._onFailure(err,data) : this._onSuccess(err,data);
+            },
+
+            _onSuccess:function(err,data){
+                var service=this._data.get('service');
+                if(service.onSuccess){
+                    service.onSuccess(err,data);
+                }
+            },
+
+            _onFailure:function(err,data){
+                var service=this._data.get('service');
+                if(service.onFailure){
+                    service.onFailure(err,data);
+                }
+            },
+
+            _onFormReset:function(){
+                var self=this;
+                this.__disposeTemplate();
+                var model=this._scopedContextModel();
+                this.$render(model, function(){
+                    self.__setFormScope();
+                    self.__resetObservable();
+                    self.__rebindTemplate();
+                });
+            },
+
+            _listenerForDelegateCapture:function(){
+                this._event($(document),this.options.submitEvent,this._tryValidate.bind(this));
+            },
+
+            _listenerForInternalCapture:function(){
+                var press = this._press();
+                var element = this.element;
+                this._event(element, press, 'button', this._capturedSubmitActionHandler.bind(this));
+            },
+
+            _capturedSubmitActionHandler:function(event){
+                event.preventDefault();
+                this._submitForm();
+            },
+
+            _submitForm:function(callback){
+                var form = this.element.find('form');
+                var body = form.document();
+                var data = {
+                    route: this._data.get('action'),
+                    body: body,
+                    method: this._data.get('method'),
+                    element: form[0]
+                };
+
+                if(callback){
+                    callback(data)
+                }else{
+                    this._tryValidate({},data);
+                }
+            },
+
+            _nativeXHRSubmit:function(data){
+                var self=this;
+                var method=this._data.get('method');
+                var action=this._data.action.get('action');
+                var formData=this._getFormDataObject(data);
+                var request = new XMLHttpRequest();
+                request.open(method, action, true);
+                request.onload = function(event) {
+                    var err=null;
+                    if (request.status !== 200) {
+                        err={
+                            statusCode:request.status
+                        };
+                    }
+                    self._onSubmit(err,data);
+                };
+
+                request.send(formData);
+            },
+
+            _sendNotification:function(message){
+                var service=this._getNotifyService();
+                if(service){
+                    service.show(message);
+
+                }
+            },
+
+            /**
+             * merges a data object with the current $scope
+             * @param {object} data
+             * @returns {object}
+             * @private
+             */
+            _mergeFormData: function (data) {
+                return $.extend({}, this.$scope, data);
+            },
+
+
+            _render:function(model,context,callback){
+                if(typeof context==='function'){
+                    callback=context;
+                    context=undefined;
+                }
+                var opts={};
+                opts.parse=false;
+                opts.template=this._data.get('templateId');
+                opts.model=model;
+                //opts.context=context;
+                this.__renderTemplate(opts,callback);
+            },
+
+            /**
+             * renders form
+             * @param form
+             * @private
+             */
+            _renderMergedData: function (form) {
+                var self=this;
+                this._render(form, function () {
+                    self.__rebindTemplate();
+                });
+            },
+
+            /**
+             *
+             * @param opts {Object}
+             * @param callback {Function}
+             * @private
+             */
+            __renderTemplate:function(opts,callback){
+                var templateNode=this.element.find('form');
+                this._renderTemplate(opts,function(err,out){
+                    var html=out.replace(/<form(.*?)>/g,'').replace(/<\/form>/g,'');
+                    templateNode.html(html);
+                    if(callback){
+                        callback(err,out);
+                    }
+                });
+            },
+
+            /**
+             *  returns boolean if valid service
+             * @param {object|undefined|null|} service
+             * @returns {boolean}
+             * @private
+             */
+            __isService:function(service){
+                return (service && service !==undefined);
+            },
+
+            /**
+             *
+             * @private
+             */
+            __getTemplateNode:function(){
+                return this.element.find('form');
+            },
+
+            _onScopeChange:function(result){
+                //console.log(result);
+            },
+
+            /**
+             * public method to externally submit form
+             * @public
+             */
+            submit:function(callback){
+                this._submitForm(callback);
+            }
+
+
+        });
+    });
+</script>
