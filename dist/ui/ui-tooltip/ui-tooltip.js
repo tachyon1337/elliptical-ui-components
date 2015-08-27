@@ -30,7 +30,7 @@ Elliptical(function () {
         _show: function(tooltip,element){
             var props=this._getAnimationInProps(element);
             if(props.preset.toLowerCase() !='none'){
-                this._transitions(tooltip,{
+                this._transition(tooltip,{
                     preset:props.preset,
                     duration:props.duration
                 });
@@ -48,7 +48,7 @@ Elliptical(function () {
         _hide: function(tooltip,element){
             var props=this._getAnimationOutProps(element);
             if(props.preset.toLowerCase() !='none'){
-                this._transitions(tooltip,{
+                this._transition(tooltip,{
                     preset:props.preset,
                     duration:props.duration
                 });
@@ -485,8 +485,6 @@ Elliptical(function () {
         _parseEvent:function(event){
             var target = $(event.target);
             if(event.type==='hoverout'){
-                //hide tooltip
-
                 this._parseHideRequest(target);
             }else{
                 //show or create tooltip

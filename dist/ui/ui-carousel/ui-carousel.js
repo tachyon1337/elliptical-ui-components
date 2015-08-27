@@ -570,6 +570,8 @@ Elliptical(function () {
         _clearTimeout: function () {
             if (this._data.get('timeoutId')) {
                 clearTimeout(this._data.get('timeoutId'));
+            }else if(this._data.get('intervalId')){
+                clearInterval(this._data.get('intervalId'));
             }
         },
 
