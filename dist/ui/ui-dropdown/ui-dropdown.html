@@ -1,0 +1,293 @@
+<script>
+
+    Elliptical(function () {
+        $.element("ui-button-dropdown",{
+
+            //Options to be used as defaults
+            options: {
+                mode:'dropdown',
+                handleEvents:false,
+                proxyUpgrade:true
+            },
+
+
+            /*==========================================
+             PRIVATE
+             *===========================================*/
+
+
+            /**
+             * init
+             * @private
+             */
+            _initElement: function(){
+                var dropdown = this.element.find('ui-dropdown');
+                if(!dropdown[0]){
+                    dropdown=this.element.find('ui-mega-dropdown');
+                }
+                if(!dropdown[0]){
+                    this._destroy();
+                    return;
+                }
+                this._data.set('dropdown',dropdown);
+                this._focus();
+            },
+
+
+            /**
+             * private method to add focus(tabIndex) to element
+             * @private
+             */
+            _focus: function(){
+                this.element.attr('tabindex',0);
+            },
+
+            /**
+             * private method that shows the dropdown
+             * @private
+             */
+            _show: function () {
+                var dropdown = this._data.get('dropdown');
+                if(this._isDisabled()){
+                    return;
+                }
+                this._onEventTrigger('show', {});
+                dropdown.addClass('show');
+            },
+
+            /**
+             * private method that hides the dropdown
+             * @private
+             */
+            _hide: function (force) {
+                var paused = this._data.get('paused');
+                var dropdown = this._data.get('dropdown');
+                if(this._isDisabled()){
+                    return;
+                }
+                if(paused && !force){
+                    return;
+                }
+                this._onEventTrigger('hide', {});
+                dropdown.removeClass('show');
+            },
+
+
+            /**
+             * check disabled status
+             * @returns {boolean}
+             * @private
+             */
+            _isDisabled: function(){
+                var element=this.element;
+                if(element.hasClass('disabled') || element.parent().hasClass('disabled')){
+                    return true;
+                }else return typeof element.attr('disabled') != 'undefined' || typeof element.parent().attr('disabled') != 'undefined';
+            },
+
+            /**
+             * private method that toggles the dropdown
+             *
+             * @private
+             */
+            _toggle: function () {
+                var dropdown = this._data.get('dropdown');
+                if (dropdown.hasClass('show')) this._hide();else{
+                    if(this._device.touch){
+                        /* for touch devices, explicitly set element focus to fire the focus event */
+                        this.element[0].focus();
+                        var self=this;
+                        /* for touch, set a blur listener on the document */
+                        setTimeout(function(){
+                            self._blurEvent();
+                        },1);
+                    }
+                    this._show();
+                }
+            },
+
+            _combo:function(target){
+                if(target[0].nodeName==='A'){
+                    var li=target.parent('menu-item');
+                    if(!li.hasClass('active')){
+                        this._removeActiveClass();
+                        li.addClass('active');
+                        var text=target[0].innerHTML;
+                        this._setText(text);
+                        this._onEventTrigger('selected',this._eventData(target,li));
+                    }
+                }
+            },
+
+            _selected:function(target){
+                var dataId = 'data-id';
+                if(target[0].nodeName==='A' && !this.options.handleEvents){
+                    //deprecated
+                }else{
+                    this._onEventTrigger('selected',{
+                        id:target.attr(dataId),
+                        target:target
+                    });
+                }
+            },
+
+            _setText:function(text){
+                var span=this.element.find('span');
+                span.text(text);
+            },
+
+            _removeActiveClass:function(){
+                this.element.find('menu-item')
+                        .removeClass('active');
+            },
+
+            _eventData:function(target,li){
+                var dataId='data-id';
+                var id=li.attr(dataId);
+                var a=this.element.find('a');
+                var index= a.index(target);
+                return {
+                    index:index,
+                    id:id,
+                    target:target
+                }
+            },
+
+
+            _onClick:function(event){
+                var mode=this.options.mode;
+                if(mode==='combo'){
+                    this._combo($(event.target));
+                }else{
+                    this._selected($(event.target));
+                }
+                this._toggle();
+            },
+
+            _onKeyPress: function(event){
+                var mode=this.options.mode;
+                if(event.which===13){
+                    if(mode==='combo'){
+                        this._combo($(event.target));
+                    }else{
+                        this._selected($(event.target));
+                    }
+                    this._toggle();
+                }
+            },
+
+            _onBlur:function(event){
+                var element = this.element;
+                element.removeClass('ui-focus');
+                var self=this;
+                if(this._device.touch){
+                    this._hide();
+                    this._unbindBlur();
+                }else{
+                    setTimeout(function(){
+                        self._hide();//mozilla/firefox won't fire click event on links unless hide() is delayed
+                    },200);
+                }
+            },
+
+            _onFocus:function(event){
+                var element = this.element;
+                element.addClass('ui-focus');
+            },
+
+            _onPause:function(){
+                this._data.set('paused',true);
+            },
+
+            _onResume:function(){
+                this._data.set('paused',false);
+            },
+
+            /**
+             * element events
+             * @private
+             */
+            _events: function () {
+                /* click special event name */
+                var click=this._data.click;
+
+                var element = this.element;
+                var self = this;
+                if(this.element.find('ui-mega-dropdown')){
+                    this._data.set('paused',true);
+                }
+                this._event(element,click,function(event){
+                    if(event.target.tagName.toLowerCase()!=='ui-mega-dropdown'){
+                        self._onClick(event);
+                    }
+                });
+
+                this._event(element,'keypress',function(event){
+                    self._onKeyPress(event);
+                });
+
+                this._event(element,'blur',function(event){
+                    if(!self._data.get('paused')){
+                        self._onBlur(event);
+                    }
+                });
+
+                this._event(element,'focus',function(event){
+                    self._onFocus(event);
+                });
+
+                this._event(element,'pause',function(event){
+                    self._onPause(event);
+                });
+
+                this._event(element,'resume',function(event){
+                    self._onResume(event);
+                });
+
+            },
+
+            _blurEvent: function(){
+                var click=this._data.click;
+                var element=this.element;
+                this._event($(document),click,true,function(event){
+                    if(!$(event.target).closest(element).length && !this._data.get('paused')){
+                        element[0].blur();
+                    }
+                });
+            },
+
+            _unbindBlur: function(){
+                this._unbindEvents();
+            },
+
+
+            /*==========================================
+             PUBLIC METHODS
+             *===========================================*/
+
+            show: function () {
+
+                this._show();
+            },
+
+            hide: function (force) {
+
+                this._hide(force);
+            },
+
+            toggle: function () {
+
+                this._toggle();
+            },
+
+            pause:function(){
+                this._onPause();
+            },
+
+            resume:function(){
+                this._onResume();
+            }
+        });
+
+    });
+</script>

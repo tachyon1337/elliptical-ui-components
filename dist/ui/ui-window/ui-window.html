@@ -1,0 +1,522 @@
+<ui-window parse-attr definition>
+    <template>
+        <header>
+            <div class="close"  aria-hidden="true">
+                <span aria-hidden="true" class="icon-core-close-3"></span>
+            </div>
+            <h3>[[title]]</h3>
+        </header>
+        <section>
+            <content></content>
+        </section>
+        <footer>
+            <button  class="ui-button [[button-size]]" data-cancel>[[cancel-text]]</button>
+            <button class="ui-button [[button-Class]]  [[button-size]]" data-action="[[button-role]]">[[button-label]]</button>
+        </footer>
+    </template>    
+</ui-window>
+
+<script>
+Elliptical(function(){
+        $.element("ui.window","ui-window", {
+
+        //Options to be used as defaults
+        options: {
+            animationIn:'slideInDown',
+            animationOut: 'none',
+            duration: 300,
+            height: null,
+            width: null,
+            top: null,
+            bottom: null,
+            left: null,
+            right: null,
+            modal: false,
+            template: null,
+            model: [],
+            url: null,
+            title: '',
+            btnActionText: 'Save',
+            zIndex: 110000,
+            setZIndex:false,
+            draggable: false,
+            dragHandle: '.header',
+            dragCursor: 'move',
+            opacityCss:null,
+            cssClass:null
+
+        },
+
+        /*==========================================
+         PRIVATE
+         *===========================================*/
+
+        /**
+         * init
+         * @private
+         */
+        _initElement:function(){
+            this._data.set('element',null);
+            this._data.set('backdrop',null);
+            this._setOpts();
+            var ele = this.element;
+            this._isOpen = false;
+            this._setModalInit();
+            this._initWindow(ele);
+        },
+
+
+        /**
+         *
+         * @private
+         */
+        _init: function () {
+
+            this._open();
+        },
+
+        _setOpts:function(){
+            if(this.options.top==='null'){
+                this.options.top=null;
+            }
+            if(this.options.left==='null'){
+                this.options.left=null;
+            }
+            if(this.options.height==='null'){
+                this.options.height=null;
+            }
+            if(this.options.width==='null'){
+                this.options.width=null;
+            }
+            if(this.options.bottom==='null'){
+                this.options.bottom=null;
+            }
+            if(this.options.right==='null'){
+                this.options.right=null;
+            }
+            if(this.options.template==='null'){
+                this.options.template=null;
+            }
+            if(this.options.url==='null'){
+                this.options.url=null;
+            }
+            if(this.options.opacityCss==='null'){
+                this.options.opacityCss=null;
+            }
+            if(this.options.cssClass){
+                this.element.addClass(this.options.cssClass);
+            }
+        },
+
+       
+        /**
+         *
+         * @param element {Object}
+         * @private
+         */
+        _initWindow: function (element) {
+            //store the reference to the actual window here; if loaded from a template, this.element is the wrapper and not the window
+            //thus proceeding calls(except: this._destroy) should always call this.options.window to get the correct reference;
+            this._data.element = element;
+
+            element.attr({tabIndex: -1});
+            this._focusable(element);
+            this._bindClose();
+
+        },
+
+        /**
+         *
+         * @private
+         */
+        _setModalInit: function(){
+            //if smartphone, modal is true regardless
+            if(this._device.smartphone){
+                this.options.modal=true;
+            }
+        },
+
+        
+
+        /**
+         *
+         * @private
+         */
+        _setPosition: function () {
+            var ele = this._data.element;
+            var css = {};
+            var top = this.options.top;
+            var bottom = this.options.bottom;
+            var left = this.options.left;
+            var right = this.options.right;
+            if ((top != null) && (bottom != null)) {
+                css.bottom = 'auto';
+                css.top = top + 'px';
+            } else if (top != null) {
+                css.bottom = 'auto';
+                css.top = top + 'px';
+            } else if (bottom != null) {
+                css.top = 'auto';
+                css.bottom = bottom + 'px';
+            }
+            if ((right != null) && (left != null)) {
+                css.right = 'auto';
+                css.left = left + 'px';
+            } else if (right != null) {
+                css.left = 'auto';
+                css.right = right + 'px';
+            } else if (left != null) {
+                css.right = 'auto';
+                css.left = left + 'px';
+            }
+            if (!$.isEmptyObject(css)) {
+                //css.margin = '0px';
+                ele.css(css);
+            }
+        },
+
+        /**
+         *
+         * @private
+         */
+        _setDimensions: function () {
+            var ele = this._data.element;
+            var css = {};
+            var height = this.options.height;
+            var width = this.options.width;
+            if (height != null) {
+                css.height = height + 'px';
+            }
+            if (width != null) {
+                css.width = width + 'px';
+            }
+            if (!$.isEmptyObject(css)) {
+                ele.css(css);
+            }
+        },
+
+        /**
+         *
+         * @private
+         */
+        _setZIndex: function () {
+            if(this.options.setZIndex){
+                var ele = this._data.element;
+                var key = 'window_zIndex';
+                var zIndex = this._getData(key);
+                var option = this.options.zIndex;
+                var css = ele.css('z-index');
+                if (zIndex != null) {
+                    zIndex = parseInt(zIndex);
+                    zIndex++;
+                } else if (option != null) {
+                    zIndex = parseInt(option);
+                    zIndex++;
+                } else if (css != null) {
+                    zIndex = parseInt(css);
+                    zIndex++;
+                } else {
+                    zIndex = 9999;
+                }
+
+                ele.css({'z-index': zIndex});
+                this._setData(key, zIndex);
+
+            }
+
+        },
+
+        /**
+         *
+         * @private
+         */
+        _open: function () {
+            if (this._isOpen) {
+                return;
+            }
+            var eventData=this._eventData();
+            this._isOpen = true;
+            if(!this._data.get('element')){
+                this._data.set('element',this.element);
+            }
+            var ele = this._data.get('element');
+            this._onEventTrigger('showing', eventData);
+            this._setPosition();
+            this._setZIndex();
+            this._setPosition();
+            this._setDimensions();
+
+            var modal = this.options.modal;
+            var duration = this.options.duration;
+            if ((modal === true) || (modal === 'true')) {
+                this._backdrop();
+            }
+            if(this.options.animationIn==='none'){
+                ele.addClass('show');
+                this._onEventTrigger('show',{});
+            }else{
+                this._transitions(ele,{
+                    preset:this.options.animationIn,
+                    duration:duration
+                },function(){
+                    //self._onEventTrigger('show',{});
+                });
+            }
+        },
+
+        /**
+         *
+         * @private
+         */
+        _backdrop: function () {
+            var ele = this._data.get('element');
+            var backdrop = $(this._data.get('modalElement'));
+            if (ele.hasClass('light')) {
+                backdrop.addClass('light');
+            } else if (ele.hasClass('transparent')) {
+                backdrop.addClass('light transparent');
+            }
+            if(this.options.opacityCss){
+                backdrop.addClass(this.options.opacityCss);
+            }
+            var body = $('body');
+            body.append(backdrop);
+            this._data.set('backdrop',backdrop);
+
+        },
+
+        /**
+         *
+         * @private
+         */
+        _removeBackdrop: function () {
+            var backdrop = $(this._data.get('modalSelector'));
+            backdrop.remove();
+        },
+
+        /**
+         *
+         * @private
+         */
+        _close: function () {
+            var ele = this._data.get('element');
+            var eventData=this._eventData();
+            this._onEventTrigger('hiding', eventData);
+            var modal = this.options.modal;
+            if (modal){
+                this._removeBackdrop();
+            }
+            ele.removeClass('show');
+            this._isOpen = false;
+            this.element.remove();
+            $(window).trigger('window.hide', eventData);
+
+        },
+
+        /**
+         *
+         * @private
+         */
+        _bindClose: function () {
+            var self=this;
+            /* click special event name */
+            var click=this._data.click;
+            var ele = this._data.get('element');
+            var close = ele.find('header > .close');
+            if (close[0]) {
+                this._event(close,click,function(event){
+                    self._close();
+                });
+            }
+        },
+
+        /**
+         *
+         * @returns {{}}
+         * @private
+         */
+        _eventData:function(ele){
+            var data={};
+            data.target=this._data.get('element');
+            try{
+                if(ele !==undefined){
+                    $.extend(data,this._getAttrs(ele,true));
+                }
+            }catch(ex){
+
+            }
+            return data;
+        },
+
+        /**
+         *
+         * @private
+         */
+        _events: function () {
+
+            var self=this;
+            /* click special event name */
+            var click=this._data.click;
+            var ele = this._data.get('element');
+            var eventData;
+            var cancel = ele.find('footer > [data-cancel]');
+
+            if (cancel[0]) {
+                eventData=this._eventData(cancel[0]);
+                this._event(cancel,click,function(event){
+                    self._close();
+                    self._onEventTrigger('cancel', eventData);
+                });
+            }
+
+            var action = ele.find('footer > [data-action]');
+            if (action[0]) {
+                eventData=this._eventData(action[0]);
+                this._event(action,click,function(event){
+                    self._onEventTrigger('action', eventData);
+                });
+            }
+        },
+
+
+        /**
+         *
+         * @private
+         */
+        _focusin: function () {
+            //focused window needs to be on top
+            this._setZIndex();
+        },
+
+        /**
+         *
+         * @private
+         */
+        _setTitle: function () {
+            var ele = this._data.get('element');
+            var title = this.options.title;
+            var h3 = ele.find('header > h3');
+            h3.text(title);
+
+        },
+
+        /**
+         *
+         * @private
+         */
+        _setBtnActionText: function () {
+            var ele = this._data.get('element');
+            var label = this.options.btnActionText;
+            var btn = ele.find('footer > [data-action]');
+            btn.text(label);
+        },
+
+        /**
+         * Respond to any changes the user makes to the option method
+         * @param key
+         * @param value
+         * @private
+         */
+        _setOption: function (key, value) {
+            switch (key) {
+                case 'disabled':
+                    this._super(key, value);
+                    break;
+                case 'title':
+                    this.options.title = value;
+                    this._setTitle();
+                    break;
+                case 'btnActionText':
+                    this.options.btnActionText = value;
+                    this._setBtnActionText();
+                    break;
+                case 'height':
+                    this.options.height = value;
+                    this._setDimensions();
+                    break;
+                case 'width':
+                    this.options.width = value;
+                    this._setDimensions();
+                    break;
+                case 'top':
+                    this.options.top = value;
+                    this._setPosition();
+                    break;
+                case 'bottom':
+                    this.options.bottom = value;
+                    this._setPosition();
+                    break;
+                case 'left':
+                    this.options.left = value;
+                    this._setPosition();
+                    break;
+                case 'right':
+                    this.options.right = value;
+                    this._setPosition();
+                    break;
+                case 'zIndex':
+                    this.options.zIndex = value;
+                    this._setZIndex();
+                    break;
+                default:
+                    this.options[ key ] = value;
+                    break;
+            }
+
+
+        },
+
+
+        /*==========================================
+         PUBLIC METHODS
+         *===========================================*/
+
+        /**
+         * @public
+         */
+        show: function () {
+            //if (!this._isOpen) {
+                this._open();
+            //}
+        },
+
+        /**
+         * @public
+         */
+        hide: function () {
+
+            //if (this._isOpen) {
+                this._close();
+            //}
+        },
+
+        /**
+         *
+         * @returns {boolean|*}
+         * @public
+         */
+        isOpen: function () {
+            return this._isOpen;
+        },
+
+        /**
+         * @public
+         */
+        showLoader: function () {
+            var ele = this._data.get('element');
+            var body = ele.find('.body');
+            this._showLoader(body);
+        },
+
+        /**
+         * @public
+         */
+        hideLoader: function () {
+            var ele = this._data.get('element');
+            var body = ele.find('.body');
+            this._hideLoader(body);
+        }
+    });
+});
+    
+</script>

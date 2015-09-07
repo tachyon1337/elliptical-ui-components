@@ -1,0 +1,95 @@
+<link rel="import" href="column-header.html" property="elliptical">
+<script>
+    Elliptical(function () {
+        $.element.registerElements(['grid-item', 'grid-pagination', 'page-navigation', 'page-info']);
+        $.component('flex-grid', {
+            options:{
+                proxyUpgrade:true,
+                scopeBind:false
+            },
+            _initComponent: function () {
+                this._setService();
+            },
+            _setService:function(){
+                var self=this;
+                this.serviceAsync(function(Service){
+                    self._data.set('Service',Service);
+                    self._isSorted(Service);
+                });
+            },
+            _setGridState:function(data){
+                var self=this;
+                var field=data.field;
+                var sort=data.sort;
+                var target=this.element.find('column-header[field="' + field + '"]');
+                var columns=this._getColumns();
+                //ensure column-headers are distributed
+                setTimeout(function(){
+                    self._setTarget(target,sort);
+                    self._resetColumns(columns);
+                },200);
+            },
+            /**
+             *  verify grid needs to visually display sorted column state
+             * @param {object} Service
+             * @private
+             */
+            _isSorted:function(Service){
+                var self = this;
+                if (!Service) return;
+                var service = new Service();
+                var data=service.sorted();
+                if(data){
+                    this._setGridState(data);
+                }else{
+                    var columns=this._getColumns();
+                    setTimeout(function(){
+                        self._resetColumns(columns);
+                    },200);
+                }
+            },
+            _getColumns:function(){
+                return this.element.find('column-header[sort="true"]');
+            },
+            _events:function(){
+                var click=this._data.click;
+                this._event(this.element,click,'column-header[sort="true"]',this._onColumnClick.bind(this));
+                this._event(this.element,click,'[refresh]',this._onRefreshClick.bind(this));
+            },
+            _onColumnClick:function(event){
+                var target=$(event.currentTarget);
+                this._parseColumn(target);
+            },
+            _onRefreshClick:function(event){
+                var url=this.options.refresh;
+                var Service=this._data.get('Service');
+                var service=new Service();
+                service.refresh(url);
+            },
+            _parseColumn:function(target){
+                var field=target.attr('field');
+                var sort=target[0].dataset.sort;
+                if(sort===undefined){
+                    sort='asc';
+                }else{
+                    sort=(sort==='asc') ? 'desc' : 'asc';
+                }
+                this._setQuery(field,sort);
+            },
+            _resetColumns:function(columns){
+                columns.not('.active').find('span[sort="true"]').removeClass('hide');
+            },
+            _setTarget:function(target,sort){
+                target.addClass('active');
+                target.find('span[sort="true"]').addClass('hide');
+                target.find('span[' + sort + ']').removeClass('hide');
+                target[0].dataset.sort=sort;
+            },
+            _setQuery:function(field,sortOrder){
+                var Service=this._data.get('Service');
+                var service=new Service();
+                service.sort({field:field,sortOrder:sortOrder});
+            }
+        });
+    });
+</script>

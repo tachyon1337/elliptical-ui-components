@@ -1,0 +1,183 @@
+<script>
+    Elliptical(function () {
+        $.element.registerElements(['ui-button-bar','button-item']);
+        $.element("ui.buttonGroup","ui-button-group",{
+            options:{
+                proxyUpgrade:true
+            },
+
+            /*==========================================
+             PRIVATE
+             *===========================================*/
+
+            _initElement:function(){
+
+            },
+
+            /**
+             * get the related button and index
+             * @param buttons {Array}
+             * @returns {Object}
+             * @private
+             */
+            _relatedButton: function(buttons){
+                var active=buttons.filter('.active');
+                return (active[0]) ? {target:active,index:buttons.index(active)} : {target:null,index:null}
+            },
+
+            /**
+             *
+             * @param id {String}
+             * @private
+             */
+            _disableButtonById: function(id){
+                var button = this.element.find('.ui-button[data-id="' + id + '"]');
+                button.addClass('disabled');
+            },
+
+            /**
+             *
+             * @param index {Number}
+             * @private
+             */
+            _disableButtonByIndex: function(index){
+                var button = this.element.find('.ui-button')[index];
+                button.addClass('disabled');
+            },
+
+            /**
+             *
+             * @param id {String}
+             * @private
+             */
+            _enableButtonById: function(id){
+                var button = this.element.find('.ui-button[data-id="' + id + '"]');
+                button.removeClass('disabled');
+            },
+
+            /**
+             *
+             * @param index {Number}
+             * @private
+             */
+            _enableButtonByIndex: function(index){
+                var button = this.element.find('.ui-button')[index];
+                button.removeClass('disabled');
+            },
+
+            /**
+             *
+             * @param $this {Object}
+             * @param button {Object}
+             * @private
+             */
+            _onClick:function($this,button){
+                /* trigger if not currently active and not currently disabled */
+                if (!$this.hasClass('disabled') && !$this.hasClass('active')) {
+                    var related=this._relatedButton(button);
+                    button.removeClass('active');
+                    $this.addClass('active');
+                    var id = $this.attr('data-id');
+                    var index=button.index($this);
+                    var data = {
+                        id: id,
+                        index:index,
+                        target:$this,
+                        relatedIndex:related.index,
+                        relatedTarget:related.target
+                    };
+                    this._onEventTrigger('selected', data);
+                }
+            },
+
+            /**
+             * element events
+             * @private
+             */
+            _events: function () {
+                var self = this;
+                /* click special event name */
+                var click=this._data.click;
+                var element=this.element;
+                var button = element.find('.ui-button');
+
+                this._event(button,click,function(event){
+                    self._onClick($(this),button);
+                });
+
+            },
+
+            /**
+             * show
+             * @private
+             */
+            _show: function(){
+                this.element.show();
+            },
+
+            /**
+             * hide
+             * @private
+             */
+            _hide: function(){
+                this.element.show();
+            },
+
+            /**
+             * toggle visibility
+             * @private
+             */
+            _toggle: function(){
+                this.element.toggle();
+            },
+
+
+            /*==========================================
+             PUBLIC METHODS
+             *===========================================*/
+
+            /**
+             * @public api
+             */
+            show: function () {
+                this._show();
+            },
+
+            /**
+             * @public api
+             */
+            hide: function () {
+                this._hide();
+            },
+
+            /**
+             * @public api
+             */
+            toggle: function(){
+                this._toggle();
+            },
+
+            /**
+             *
+             * @param id {String}|{Number}
+             * @public api
+             */
+            disable:function(id){
+                (typeof id==='string') ? this._disableButtonById(id) : this._disableButtonByIndex(id);
+            },
+
+            /**
+             *
+             * @param id {String}|{Number}
+             * @public api
+             */
+            enable:function(id){
+                (typeof id==='string') ? this._enableButtonById(id) : this._enableButtonByIndex(id);
+            }
+
+
+
+        });
+
+    });
+</script>

@@ -1,0 +1,34 @@
+<style>
+    column-header {
+        display: block;
+    }
+
+        column-header[sort=true] {
+            cursor: pointer;
+        }
+        column-header[sort=true]  [sort]{
+            cursor: pointer;
+            color:#bdbdbd;
+            margin-left:.15em;
+        }
+
+    colun-header[empty] > * {
+        display: none;
+    }
+</style>
+<column-header parse-attr definition>
+    <template>
+        <span class="label"><content></content></span>
+        <span class="icon-content-sort hide" sort="[[sort]]"></span>
+        <span class="icon-content-up-arrow hide" arrow asc></span>
+        <span class="icon-content-down-arrow hide" arrow desc></span>
+    </template>
+</column-header>
+<script>
+    Elliptical(function () {
+        $.element('column-header', {
+            _initElement: function () {
+            }
+        });
+    });
+</script>

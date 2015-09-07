@@ -1,0 +1,39 @@
+﻿<ui-radio parse-attr definition>
+    <template>
+        <input type="radio" id="[[data-id]]" name="[[name]]" data-bind="[[bind]]" [[required]] value="[[value]]">
+        <label for="[[data-id]]">[[label]]</label>
+    </template>
+</ui-radio>
+<script>
+    Elliptical(function(){
+        $.element('ui-radio',{
+            _initElement:function(){
+                var checked=this.element.attr('checked');
+                if(checked){
+                    var input=this.element.find('input');
+                    input.prop('checked',true);
+                }
+            },
+
+            _events:function(){
+                var self=this;
+                this._event(this.element,'change','input',function(event){
+                    self._resetSemanticState();
+                    self._onChange(event);
+                });
+            },
+
+            _onChange:function(event){
+                var element=$(event.currentTarget);
+                var data={
+                    value:element.val(),
+                    checked:element.is(':checked'),
+                    id:element.attr('id'),
+                    name:element.attr('name')
+                };
+                this.element.trigger('ui.radio.change',data);
+            }
+
+        });
+    });
+</script>

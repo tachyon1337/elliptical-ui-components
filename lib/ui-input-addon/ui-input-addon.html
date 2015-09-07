@@ -1,0 +1,11 @@
+<ui-input-addon parse-attr definition>
+   <template>
+     <input type="text" placeholder="[[placeholder]]" value="[[value]]">
+     <ui-button class="[[button-class]]"><span class="[[icon-class]]">[[button-value]]</span></ui-button>
+   </template>
+</ui-input-addon>
+<script>
+    Elliptical(function () {
+        $.element('ui.inputAddOn','ui-input-addon', {});
+    });
+</script>

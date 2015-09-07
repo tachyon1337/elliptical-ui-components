@@ -1,0 +1,41 @@
+﻿<ui-checkbox parse-attr definition>
+    <template>
+        <input type="checkbox" id="[[data-id]]" name="[[name]]" data-bind="[[bind]]" [[required]]>
+        <label for="[[data-id]]">[[label]]</label>
+    </template>
+</ui-checkbox>
+<script>
+    Elliptical(function(){
+        $.element('ui-checkbox',{
+            _initElement:function(){
+                var checked=this.element.attr('checked');
+                if(checked){
+                    var input=this.element.find('input');
+                    input.prop('checked',true);
+                }
+            },
+
+            _events:function(){
+                var self=this;
+                this._event(this.element,'change','input',function(event){
+                    self._resetSemanticState();
+                    self._onChange(event);
+                });
+            },
+
+            _onChange:function(event){
+                var element=$(event.currentTarget);
+                var checked=element.is(':checked');
+                var data={
+                    value:element.val(),
+                    checked:checked,
+                    id:element.attr('id'),
+                    name:element.attr('name')
+                };
+                this.element.trigger('ui.checkbox.change',data);
+                (checked) ? this.element.attr('checked','') : this.element.removeAttr('checked');
+            }
+
+        });
+    });
+</script>
