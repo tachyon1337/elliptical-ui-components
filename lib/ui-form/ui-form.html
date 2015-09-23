@@ -3,7 +3,7 @@
         $.component('ui-form', {
             options:{
                 proxyUpgrade:true,
-                validationService:'Validation',
+                validationService:null,
                 notifyService:'Notify',
                 locationService:'Location',
                 submitEvent: 'OnDocumentSubmit',
@@ -76,9 +76,6 @@
                 if (scopeProp && typeof scopeProp !== 'undefined' && !this.__isEmptyObject(cxt)) {
                     var formContext=this.__cloneObject(cxt[scopeProp]);
                     this.$scope = formContext;
-                    //if (this.$scope._message === undefined) {
-                        //this.$scope._message = {};
-                    //}
                 }
 
             },
@@ -96,9 +93,11 @@
             },
 
             _setValidationService:function(){
-                var validationServiceName=this.options.validationService;
-                var service=this.service(validationServiceName);
-                this._data.set('validationService',service);
+                var validationServiceName = this.options.validationService;
+                if (validationServiceName) {
+                    var service = this.service(validationServiceName);
+                    this._data.set('validationService', service);
+                }
             },
 
             _setNotificationService:function(){

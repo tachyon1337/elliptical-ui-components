@@ -16,6 +16,12 @@
 
             },
 
+            _initElement:function(){
+                //if (this._device.touch) {
+                    //this._destroy();
+                //}
+            },
+
 
             /*==========================================
              PRIVATE
@@ -447,6 +453,10 @@
                 $(_containerSelector).append(tooltip);
                 this._renderTooltip(element,tooltip,canvas,coords);
                 this._show(tooltip,element);
+            },
+
+            _offset: function(node){
+                return $(node).offset();
             },
 
             /**

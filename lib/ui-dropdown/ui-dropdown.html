@@ -7,7 +7,8 @@
             options: {
                 mode:'dropdown',
                 handleEvents:false,
-                proxyUpgrade:true
+                proxyUpgrade: true,
+                hideOnBlur:true
             },
 
 
@@ -60,12 +61,12 @@
              * @private
              */
             _hide: function (force) {
-                var paused = this._data.get('paused');
+                var focused = this._data.get('focused');
                 var dropdown = this._data.get('dropdown');
                 if(this._isDisabled()){
                     return;
                 }
-                if(paused && !force){
+                if(focused && !force){
                     return;
                 }
                 this._onEventTrigger('hide', {});
@@ -92,7 +93,7 @@
              */
             _toggle: function () {
                 var dropdown = this._data.get('dropdown');
-                if (dropdown.hasClass('show')) this._hide();else{
+                if (dropdown.hasClass('show')) this._hide(false);else{
                     if(this._device.touch){
                         /* for touch devices, explicitly set element focus to fire the focus event */
                         this.element[0].focus();
@@ -181,11 +182,11 @@
                 element.removeClass('ui-focus');
                 var self=this;
                 if(this._device.touch){
-                    this._hide();
+                    this._hide(false);
                     this._unbindBlur();
                 }else{
                     setTimeout(function(){
-                        self._hide();//mozilla/firefox won't fire click event on links unless hide() is delayed
+                        self._hide(false);//mozilla/firefox won't fire click event on links unless hide() is delayed
                     },200);
                 }
             },
@@ -195,12 +196,12 @@
                 element.addClass('ui-focus');
             },
 
-            _onPause:function(){
-                this._data.set('paused',true);
+            _setFocused:function(){
+                this._data.set('focused',true);
             },
 
-            _onResume:function(){
-                this._data.set('paused',false);
+            _resetFocused:function(){
+                this._data.set('focused',false);
             },
 
             /**
@@ -213,13 +214,13 @@
 
                 var element = this.element;
                 var self = this;
-                if(this.element.find('ui-mega-dropdown')){
-                    this._data.set('paused',true);
-                }
-                this._event(element,click,function(event){
-                    if(event.target.tagName.toLowerCase()!=='ui-mega-dropdown'){
-                        self._onClick(event);
+                if (this.element.find('ui-mega-dropdown')[0]) {
+                    if (!this.options.hideOnBlur) {
+                        this._data.set('focused', true);
                     }
+                }
+                this._event(element.children('a'), click, function (event) {
+                    self._onClick(event);
                 });
 
                 this._event(element,'keypress',function(event){
@@ -227,7 +228,7 @@
                 });
 
                 this._event(element,'blur',function(event){
-                    if(!self._data.get('paused')){
+                    if(!self._data.get('focused')){
                         self._onBlur(event);
                     }
                 });
@@ -236,12 +237,12 @@
                     self._onFocus(event);
                 });
 
-                this._event(element,'pause',function(event){
-                    self._onPause(event);
+                this._event(element,'set.focus',function(event){
+                    self._setFocused(event);
                 });
 
-                this._event(element,'resume',function(event){
-                    self._onResume(event);
+                this._event(element,'set.blur',function(event){
+                    self._resetFocused(event);
                 });
 
             },
@@ -250,7 +251,7 @@
                 var click=this._data.click;
                 var element=this.element;
                 this._event($(document),click,true,function(event){
-                    if(!$(event.target).closest(element).length && !this._data.get('paused')){
+                    if(!$(event.target).closest(element).length && !this._data.get('focused')){
                         element[0].blur();
                     }
                 });
@@ -271,7 +272,9 @@
             },
 
             hide: function (force) {
-
+                if (force === undefined) {
+                    force = false;
+                }
                 this._hide(force);
             },
 
@@ -280,12 +283,12 @@
                 this._toggle();
             },
 
-            pause:function(){
-                this._onPause();
+            focus:function(){
+                this._setFocused();
             },
 
-            resume:function(){
-                this._onResume();
+            blur:function(){
+                this._resetFocus();
             }
         });
 

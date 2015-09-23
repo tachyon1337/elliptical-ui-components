@@ -1,3 +1,4 @@
+<link rel="import" href="../ui-navigation/ui-navigation.html" property="elliptical">
 <script>
     Elliptical(function(){
 
@@ -27,7 +28,6 @@
                 delay:1000,
                 events:false,
                 touchEvents:true
-
             },
 
 
@@ -363,31 +363,15 @@
                 if (!drawer) {
                     return false;
                 }
-                if(!this._device.touch){
-                    this._event(drawer,click,'touch-ui-menu>menu-item',function(event){
-                        self._onTouchMenuEvent(event);
-                    });
-                    this._event(drawer,click,'menu-item-dropdown',function(event){
-                        self._onTouchMenuEvent(event);
-                    });
-                }else{
-                    var touchMenu = $('touch-ui-menu');
-                    this._event(touchMenu, 'tap', 'a', function (event) {
-                        var a = $(event.currentTarget);
-                        self._touchMenuItem(a, true);
-                    });
-                    this._event(touchMenu, 'tap', 'menu-item-dropdown', function (event) {
-                        var item = $(event.target);
-                        if (!item.hasClass('close')) {
-                            self._touchToggleDropdown(item);
-                        }
 
-                    });
-                    this._event(touchMenu, 'dbltap', 'menu-item-dropdown', function (event) {
-                        var item = $(event.target);
-                        self._touchToggleDropdown(item);
-                    });
-                }
+                this._event(drawer, click, 'touch-ui-menu>menu-item', function (event) {
+                    self._onTouchMenuEvent(event);
+                });
+                this._event(drawer, click, 'menu-item-dropdown', function (event) {
+                    self._onTouchMenuEvent(event);
+                });
+
+              
 
             },
 
@@ -456,7 +440,11 @@
 
             addMenuModel: function(model){
                 this._addMenuModel(model);
+            },
 
+            location: function (val) {
+                this.options.events = val;
+                this.options.touchEvents = val;
             }
 
         });

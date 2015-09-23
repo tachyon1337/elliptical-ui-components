@@ -1,8 +1,58 @@
-﻿<script src="ui-select.js"></script>
-<ui-select parse-attr definition>
+﻿<ui-select parse-attr definition>
     <template>
         <content></content>
         <input type="hidden" id="[[data-id]]" name="[[name]]" data-bind="[[bind]]" value="[[value]]">
     </template>
 </ui-select>
+<script>
+    Elliptical(function () {
+        console.log('ui-select');
+        $.element('ui.select', 'ui-select', {
 
+            _initElement: function () {
+                var val = this.options.value;
+                if (val && val !== undefined) {
+                    this._setValue(val);
+                }
+            },
+
+            _events: function () {
+                var self = this;
+                this._event(this.element, 'change', 'select', function (event) {
+                    var target = $(event.currentTarget);
+                    var val = target.val();
+                    var input = self.element.find('input');
+                    input.val(val);
+                    self._resetSemanticState();
+                    self._onChange(target, val);
+                });
+            },
+
+            _setValue: function (val) {
+                var select = this.element.find('select');
+                select.val(val);
+
+            },
+
+            _onChange: function (target, val) {
+                var id = (this.options.dataId === undefined) ? target.attr('data-id') : this.options.dataId;
+                var name = (this.options.dataName === undefined) ? target.attr('data-name') : this.options.dataName;
+                var data = {
+                    value: val,
+                    id: id,
+                    name: name
+                };
+                this.element.trigger('ui.select.change', data);
+            },
+
+            _onDisabled: function (element) {
+                element.find('select').attr('disabled', true);
+            },
+
+            _onReadOnly: function (element) {
+                element.find('select').attr('readonly', true);
+            }
+
+        });
+    });
+</script>

@@ -86,14 +86,18 @@ Elliptical(function () {
             //extract items from clone
             var items=this._extractMenuItems(clone);
 
-
+            ///---handle dropdown buttons------
             /* unwrap button dropdowns */
             items.find('ui-button-dropdown').contents().unwrap();
 
+            //if menu-item tag has dropdowns, replaceWith menu-item-dropdown
+            items=this._methods.replaceWithMenuItemTags(items);
+            ///--end handling of dropdown buttons---------
 
             //touchify the ui-dropdowns
             this._methods.touchifyUIDropdowns(items);
 
+            
             //iconify menu items
             this._methods.iconifyTouchMenuItems(items);
 
@@ -353,20 +357,22 @@ Elliptical(function () {
             var id = a.attr('data-id');
             var href = a.attr('href');
             var action = a.attr('data-action');
+            var route = a.attr('data-route');
+            if (route && route === 'false') {
+                handleTouchEvents = true;
+            }
+            /* close the drawer */
+            this._hide();
             if (typeof href != 'undefined' && href != '#' && (typeof action === 'undefined' && handleTouchEvents)) {
-                /* fire an event for SPA, that the route is being triggered/captured by the navigation element.
-                 location is a provider, so app framework should set $.element's location provider to handle the request
-                 */
-                this.element.trigger('route.cancellation',href);
-                /* close the drawer */
-                this._hide();
+                ///if handleTouchEvents, use the injected location provider to dispatch href
+               
                 /* trigger location after the drawer has closed */
                 setTimeout(function(){
                     if(typeof href !=='undefined'){
-                        //self._location(href);
+                        self._location(href);
                     }
                 },duration);
-            } else {
+            } else { //else, just fire an event
                 var data = {
                     id: id,
                     action: action,
@@ -582,6 +588,24 @@ Elliptical(function () {
                         megaDropdown.replaceWith(dropdown);
                     }
                 });
+            },
+
+            replaceWithMenuItemTags: function (items) {
+                var clonedItems = [];
+                for (var i = 0; i < items.length; i++) {
+                    var $element = $(items[i]);
+                    var dropdown = $element.find('ui-dropdown');
+                    var megaDropdown = $element.find('ui-mega-dropdown');
+                    if (dropdown[0] || megaDropdown[0]) {
+                        var html = $element.html();
+                        var clone = $("<menu-item-dropdown>" + html + "</menu-item-dropdown>");
+                        clonedItems.push(clone[0]);
+                    } else {
+                        clonedItems.push($element[0]);
+                    }
+                }
+
+                return clonedItems;
             },
 
             /**
