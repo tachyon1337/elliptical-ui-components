@@ -997,6 +997,12 @@
              * @private
              */
             _events: function () {
+                var isListening=this._data.get('isListening');
+                if(isListening){
+                    return;
+                }else{
+                    this._data.set('isListening',true);
+                }
                 var element = this.element;
                 var orientationEvent = this._device.orientationEvent + this.eventNamespace;
                 var self = this;
